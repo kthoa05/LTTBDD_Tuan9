@@ -44,7 +44,29 @@ export function CheckoutScreen({ navigation, route }: RootScreenProps<"Checkout"
     // (2) bật loading, xoá submitError  (3) await createOrder({...})  (4) clear() giỏ
     // (5) showMessage("Đặt hàng thành công 🎉", ..., () => navigation.navigate("Tabs", { screen: "Home" }))
     // (6) catch → setSubmitError(getErrorMessage(e)) và GIỮ NGUYÊN giỏ  (7) finally tắt loading
-    void createOrder; void clear; void showMessage; void getErrorMessage; void setLoading; void setSubmitError; void setTouched; void user;
+    setTouched(true);
+    if (!valid || !user) return;
+
+    setLoading(true);
+    setSubmitError(null);
+    try {
+      await createOrder({
+        userId: user.id,
+        items: items.map((i) => ({ bookId: i.bookId, title: i.title, price: i.price, quantity: i.quantity })),
+        total,
+        address: { name: name.trim(), phone: phone.trim(), address: address.trim() },
+        paymentMethod: payment,
+      });
+      // Chỉ xoá giỏ SAU KHI server đã nhận đơn; lỗi mạng thì giỏ còn nguyên
+      clear();
+      showMessage("Đặt hàng thành công 🎉", "Cảm ơn bạn đã mua sắm tại BookStore!", () =>
+        navigation.navigate("Tabs", { screen: "Home" })
+      );
+    } catch (e) {
+      setSubmitError(getErrorMessage(e));
+    } finally {
+      setLoading(false);
+    }
   };
 
   if (!isLoggedIn) return null;
