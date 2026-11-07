@@ -21,8 +21,8 @@ export function BookGrid({ data, onPressBook, ListHeaderComponent, ListEmptyComp
       keyExtractor={(b) => String(b.id)}
       numColumns={2}
       renderItem={({ item }) => <BookCard book={item} onPress={onPressBook} />}
-      ListHeaderComponent={ListHeaderComponent}
-      ListEmptyComponent={ListEmptyComponent}
+      ListHeaderComponent={ListHeaderComponent ?? undefined}
+      ListEmptyComponent={ListEmptyComponent ?? undefined}
       contentContainerStyle={{ padding: 6, paddingBottom: bottomSpace }}
       refreshControl={onRefresh ? <RefreshControl refreshing={!!refreshing} onRefresh={onRefresh} /> : undefined}
     />
