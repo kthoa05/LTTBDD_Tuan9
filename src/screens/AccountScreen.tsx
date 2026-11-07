@@ -1,12 +1,12 @@
 import React from "react";
-import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { Header } from "../components/Header";
 import { PrimaryButton } from "../components/PrimaryButton";
 import { MenuItem } from "../components/MenuItem";
 import { TodoBox } from "../components/TodoBox";
 import { useAuth, useWishlist } from "../store/hooks";
 import { TabScreenProps } from "../navigation/types";
-import { colors } from "../theme";
+import { colors, radius } from "../theme";
 
 export function AccountScreen({ navigation }: TabScreenProps<"Account">) {
   const { user, isLoggedIn, signOut } = useAuth();
@@ -22,7 +22,10 @@ export function AccountScreen({ navigation }: TabScreenProps<"Account">) {
             <Text style={styles.name}>{user.name}</Text>
             <Text style={styles.email}>{user.email}</Text>
             {/* TODO BT9.4c: hiện SĐT (nếu có) + nút “✎ Chỉnh sửa” → navigation.navigate("EditProfile") */}
-            <TodoBox id="BT9.4c">{"Hiện số điện thoại + nút Chỉnh sửa → màn EditProfile"}</TodoBox>
+            {user.phone ? <Text style={styles.email}>📞 {user.phone}</Text> : null}
+            <Pressable onPress={() => navigation.navigate("EditProfile")} style={styles.editBtn}>
+              <Text style={styles.editText}>✎ Chỉnh sửa</Text>
+            </Pressable>
           </View>
         ) : (
           <View style={styles.profile}>
@@ -59,6 +62,8 @@ const styles = StyleSheet.create({
   avatar: { fontSize: 64 },
   name: { fontSize: 20, fontWeight: "800", color: colors.text },
   email: { color: colors.muted },
+  editBtn: { marginTop: 4, borderWidth: 1.5, borderColor: colors.indigo, borderRadius: radius.md, paddingHorizontal: 16, paddingVertical: 8 },
+  editText: { color: colors.indigo, fontWeight: "800" },
   menu: { gap: 8 },
   actions: { alignSelf: "stretch", gap: 10, marginTop: 6 },
 });
