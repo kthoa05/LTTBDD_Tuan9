@@ -3,7 +3,6 @@ import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } fr
 import { FormField } from "../components/FormField";
 import { PrimaryButton } from "../components/PrimaryButton";
 import { PaymentOption } from "../components/PaymentOption";
-import { TodoBox } from "../components/TodoBox";
 import { createOrder } from "../services/orderService";
 import { getErrorMessage } from "../api/client";
 import { useAuth, useCart } from "../store/hooks";
@@ -33,9 +32,12 @@ export function CheckoutScreen({ navigation, route }: RootScreenProps<"Checkout"
 
   // TODO BT9.1a: tính `errors` (name/phone/address) bằng validateRequired / validatePhone
   // và `valid` = không còn lỗi && giỏ còn hàng. Hiện đang tạm = false nên nút luôn bị khoá.
-  const errors: { name: string | null; phone: string | null; address: string | null } = { name: null, phone: null, address: null };
-  void validatePhone; void validateRequired; void touched; void setName; void setPhone; void setAddress; void setPayment;
-  const valid = false;
+  const errors: { name: string | null; phone: string | null; address: string | null } = {
+    name: validateRequired("họ tên người nhận")(name),
+    phone: validatePhone(phone),
+    address: validateRequired("địa chỉ giao hàng")(address),
+  };
+  const valid = !errors.name && !errors.phone && !errors.address && items.length > 0;
 
   const submit = async () => {
     // TODO BT9.2: (1) setTouched(true); nếu !valid || !user thì return
@@ -66,10 +68,43 @@ export function CheckoutScreen({ navigation, route }: RootScreenProps<"Checkout"
         </View>
 
         <Text style={styles.h}>Địa chỉ giao hàng</Text>
-        <TodoBox id="BT9.1b">{"3 ô <FormField>: Họ tên, Số điện thoại, Địa chỉ — truyền error={touched ? errors.x : null}"}</TodoBox>
+        {/* TODO BT9.1b: 3 <FormField>: Họ tên, Số điện thoại, Địa chỉ — truyền error={touched ? errors.x : null} */}
+        <FormField
+          label="Họ tên người nhận"
+          value={name}
+          onChangeText={setName}
+          error={touched ? errors.name : null}
+          autoCapitalize="words"
+        />
+        <FormField
+          label="Số điện thoại"
+          value={phone}
+          onChangeText={setPhone}
+          error={touched ? errors.phone : null}
+          keyboardType="phone-pad"
+        />
+        <FormField
+          label="Địa chỉ"
+          value={address}
+          onChangeText={setAddress}
+          error={touched ? errors.address : null}
+          autoCapitalize="sentences"
+          placeholder="Số nhà, đường, phường/xã, quận/huyện, tỉnh/thành"
+        />
 
         <Text style={styles.h}>Phương thức thanh toán</Text>
-        <TodoBox id="BT9.1c">{"2 <PaymentOption>: COD và Chuyển khoản (hint \"Chỉ minh hoạ giao diện\"); selected={payment === ...}"}</TodoBox>
+        {/* TODO BT9.1c: 2 <PaymentOption>: COD và Chuyển khoản (hint "Chỉ minh hoạ giao diện"); selected={payment === ...} */}
+        <PaymentOption
+          label="Thanh toán khi nhận hàng (COD)"
+          selected={payment === "cod"}
+          onPress={() => setPayment("cod")}
+        />
+        <PaymentOption
+          label="Chuyển khoản ngân hàng"
+          hint="Chỉ minh hoạ giao diện"
+          selected={payment === "bank"}
+          onPress={() => setPayment("bank")}
+        />
 
         {submitError ? <Text style={styles.error}>{submitError}</Text> : null}
         {/* Nút đã nối sẵn: bị khoá cho đến khi bạn làm xong BT9.1a */}
