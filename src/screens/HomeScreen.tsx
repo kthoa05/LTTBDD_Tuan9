@@ -12,6 +12,7 @@ import { ErrorView } from "../components/ErrorView";
 import { getBooks } from "../services/bookService";
 import { getCategories } from "../services/categoryService";
 import { getErrorMessage } from "../api/client";
+import { showMessage } from "../utils/dialog";
 import { useDebounce } from "../hooks/useDebounce";
 import { useCart } from "../store/hooks";
 import { filterBooks, PriceRange } from "../utils/filters";
@@ -38,6 +39,21 @@ export function HomeScreen({ navigation, route }: TabScreenProps<"Home">) {
   // TODO BT9.6: kéo-để-làm-mới. Tạo state `refreshing` + hàm onRefresh gọi lại getBooks/getCategories (Promise.all)
   // KHÔNG bật màn loading toàn trang (giữ danh sách đang hiển thị). Rồi truyền refreshing/onRefresh cho <BookGrid>
   // (BookGrid đã nhận sẵn 2 prop này).
+  const [refreshing, setRefreshing] = useState(false);
+  // Kéo xuống để làm mới: KHÔNG setLoading(true) để danh sách hiện tại vẫn còn, chỉ có vòng xoay nhỏ
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      const [bookList, categoryList] = await Promise.all([getBooks(), getCategories()]);
+      setBooks(bookList);
+      setCategories(categoryList);
+    } catch (e) {
+      showMessage("Không thể làm mới", getErrorMessage(e));
+    } finally {
+      setRefreshing(false);
+    }
+  }, []);
+
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -113,6 +129,8 @@ export function HomeScreen({ navigation, route }: TabScreenProps<"Home">) {
           data={visibleBooks}
           onPressBook={(b) => navigation.navigate("BookDetail", { bookId: b.id })}
           ListHeaderComponent={header}
+          refreshing={refreshing}
+          onRefresh={onRefresh}
           ListEmptyComponent={
             <EmptyState
               emoji="🔎"
