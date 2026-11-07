@@ -37,7 +37,8 @@ export function AccountScreen({ navigation }: TabScreenProps<"Account">) {
 
         <View style={styles.menu}>
           {/* TODO BT9.5f / BT9.3d: thêm 2 <MenuItem> — 🔔 Thông báo → "Notifications"; 🧾 Đơn hàng của tôi → "Orders" */}
-          <TodoBox id="BT9.3d · BT9.5f">{"Thêm menu 🔔 Thông báo và 🧾 Đơn hàng của tôi"}</TodoBox>
+          <MenuItem emoji="🧾" label="Đơn hàng của tôi" onPress={() => navigation.navigate("Orders")} />
+          <TodoBox id="BT9.5f">{"Thêm menu 🔔 Thông báo (làm ở Bài 9.5)"}</TodoBox>
           <MenuItem emoji="❤️" label="Danh sách yêu thích" hint={ids.length ? `${ids.length} sách` : undefined} onPress={() => navigation.navigate("Wishlist")} />
         </View>
 
