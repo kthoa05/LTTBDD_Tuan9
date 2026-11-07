@@ -46,7 +46,22 @@ export function OrdersScreen({ navigation }: RootScreenProps<"Orders">) {
 
   // TODO BT9.C1 (thử thách "Mua lại"): thêm lại toàn bộ sản phẩm của đơn vào giỏ hiện tại
   const reorder = async (order: Order) => {
-    void order; void getBooks; void cartItems; void add; void setQty; void showMessage;
+    try {
+      // Lấy giá và tồn kho mới nhất, vì giá trong đơn cũ có thể đã khác
+      const books = await getBooks();
+      order.items.forEach((it) => {
+        const book = books.find((b) => b.id === it.bookId);
+        if (!book || book.stock <= 0) return; // sách đã ngừng bán hoặc hết hàng thì bỏ qua
+        const inCart = cartItems.find((c) => c.bookId === it.bookId);
+        if (!inCart) add({ bookId: book.id, title: book.title, price: book.price, emoji: book.emoji, color: book.color, stock: book.stock });
+        setQty(it.bookId, (inCart?.quantity ?? 0) + it.quantity); // setQty tự chặn ở tồn kho
+      });
+      showMessage("Đã thêm vào giỏ", "Các sản phẩm của đơn hàng đã được thêm lại vào giỏ.", () =>
+        navigation.navigate("Tabs", { screen: "Cart" })
+      );
+    } catch (e) {
+      showMessage("Không thể mua lại", getErrorMessage(e));
+    }
   };
 
   if (!isLoggedIn) {
@@ -102,6 +117,7 @@ export function OrdersScreen({ navigation }: RootScreenProps<"Orders">) {
                     <Text style={styles.addrT}>{o.address.address}</Text>
                     <Text style={styles.addrT}>Thanh toán: {PAYMENT_LABEL[o.paymentMethod]}</Text>
                   </View>
+                  {o.status === "completed" && <PrimaryButton title="Mua lại" variant="outline" onPress={() => reorder(o)} />}
                 </View>
               )}
             </View>
