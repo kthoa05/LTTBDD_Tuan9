@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { FlatList, Pressable, StyleSheet, Text, View } from "react-native";
 import { StatusBadge } from "../components/StatusBadge";
 import { PrimaryButton } from "../components/PrimaryButton";
@@ -12,10 +12,20 @@ import { useAuth, useCart } from "../store/hooks";
 import { formatDateTime } from "../utils/format";
 import { showMessage } from "../utils/dialog";
 import { RootScreenProps } from "../navigation/types";
-import { Order } from "../types";
+import { Order, OrderStatus } from "../types";
 import { colors, formatPrice, radius } from "../theme";
 
 export const PAYMENT_LABEL = { cod: "Thanh toán khi nhận hàng (COD)", bank: "Chuyển khoản ngân hàng" } as const;
+
+// Bộ lọc trạng thái: "all" là không lọc, còn lại trùng với OrderStatus
+type StatusFilter = "all" | OrderStatus;
+const STATUS_FILTERS: { value: StatusFilter; label: string }[] = [
+  { value: "all", label: "Tất cả" },
+  { value: "pending", label: "Chờ xác nhận" },
+  { value: "shipping", label: "Đang giao" },
+  { value: "completed", label: "Hoàn tất" },
+  { value: "cancelled", label: "Đã huỷ" },
+];
 
 export function OrdersScreen({ navigation }: RootScreenProps<"Orders">) {
   const { user, isLoggedIn } = useAuth();
@@ -24,6 +34,7 @@ export function OrdersScreen({ navigation }: RootScreenProps<"Orders">) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [openId, setOpenId] = useState<number | null>(null); // đơn đang mở rộng (xem chi tiết ngay tại màn này)
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all"); // bộ lọc trạng thái đang chọn
 
   const load = useCallback(async () => {
     // TODO BT9.3a: if (!user) return; bật loading, xoá error; gọi getOrdersByUser(user.id);
@@ -43,6 +54,12 @@ export function OrdersScreen({ navigation }: RootScreenProps<"Orders">) {
   useEffect(() => {
     load();
   }, [load]);
+
+  // Dữ liệu đưa vào FlatList: đã lọc theo trạng thái, giữ nguyên thứ tự mới nhất lên đầu
+  const visibleOrders = useMemo(
+    () => (statusFilter === "all" ? orders : orders.filter((o) => o.status === statusFilter)),
+    [orders, statusFilter]
+  );
 
   // TODO BT9.C1 (thử thách "Mua lại"): thêm lại toàn bộ sản phẩm của đơn vào giỏ hiện tại
   const reorder = async (order: Order) => {
@@ -76,17 +93,33 @@ export function OrdersScreen({ navigation }: RootScreenProps<"Orders">) {
       {/* TODO BT9.3b: FlatList đơn hàng: mỗi thẻ có Đơn #id, ngày (formatDateTime), tổng tiền, <StatusBadge>; bấm vào thẻ → mở rộng chi tiết sản phẩm + địa chỉ giao ngay trên màn này (openId). */}
       {/* TODO BT9.3c: ListEmptyComponent: <EmptyState emoji="🧾" title="Bạn chưa có đơn hàng nào" …> có nút "Mua sắm ngay". */}
       <FlatList
-        data={orders}
+        data={visibleOrders}
         keyExtractor={(o) => String(o.id)}
         contentContainerStyle={{ gap: 10, flexGrow: 1 }}
+        ListHeaderComponent={
+          <View style={styles.chips}>
+            {STATUS_FILTERS.map((f) => {
+              const active = statusFilter === f.value;
+              return (
+                <Pressable key={f.value} onPress={() => setStatusFilter(f.value)} style={[styles.chip, active && styles.chipActive]}>
+                  <Text style={[styles.chipText, active && styles.chipTextActive]}>{f.label}</Text>
+                </Pressable>
+              );
+            })}
+          </View>
+        }
         ListEmptyComponent={
-          <EmptyState
-            emoji="🧾"
-            title="Bạn chưa có đơn hàng nào"
-            message="Đặt đơn đầu tiên để theo dõi tại đây."
-            actionLabel="Mua sắm ngay"
-            onAction={() => navigation.navigate("Tabs", { screen: "Home" })}
-          />
+          orders.length === 0 ? (
+            <EmptyState
+              emoji="🧾"
+              title="Bạn chưa có đơn hàng nào"
+              message="Đặt đơn đầu tiên để theo dõi tại đây."
+              actionLabel="Mua sắm ngay"
+              onAction={() => navigation.navigate("Tabs", { screen: "Home" })}
+            />
+          ) : (
+            <EmptyState emoji="🔎" title="Không có đơn nào ở trạng thái này" />
+          )
         }
         renderItem={({ item: o }) => {
           const open = openId === o.id;
@@ -143,4 +176,9 @@ const styles = StyleSheet.create({
   addr: { backgroundColor: colors.bg, borderRadius: radius.md, padding: 10, gap: 2, marginTop: 4 },
   addrH: { fontWeight: "800", color: colors.navy },
   addrT: { color: colors.text },
+  chips: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 4 },
+  chip: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 999, borderWidth: 1, borderColor: colors.line, backgroundColor: "#fff" },
+  chipActive: { backgroundColor: colors.indigo, borderColor: colors.indigo },
+  chipText: { color: colors.text, fontWeight: "700", fontSize: 12 },
+  chipTextActive: { color: "#fff" },
 });
